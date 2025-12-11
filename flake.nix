@@ -72,7 +72,11 @@
 
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
-          packages = [ pkgs.rust-analyzer ];
+          packages = [ pkgs.rust-analyzer pkgs.pre-commit ];
+          shellHook = ''
+            [ -e .git/hooks/pre-commit ] || \
+            echo "suggestion: pre-commit install --install-hooks" >&2
+          '';
         };
       }
     );

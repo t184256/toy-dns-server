@@ -61,3 +61,9 @@ jobs:
 
       - name: Check licenses
         run: cargo deny check licenses
+
+      - name: Install pre-commit
+        run: sudo apt-get update && sudo apt-get install -y pre-commit
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
