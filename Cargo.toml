@@ -9,3 +9,6 @@ name = "toy-dns-server"
 path = "src/main.rs"
 
 [dependencies]
+bytes = "1.9"
+clap = { version = "4.5.53", features = ["derive"] }
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "net"] }

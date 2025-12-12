@@ -18,7 +18,18 @@
         pkgs = nixpkgs.legacyPackages.${system};
         craneLib = crane.mkLib pkgs;
 
-        src = craneLib.cleanCargoSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          src = ./.;
+          filter = let
+            allowMore = path: _type:
+              builtins.match ".*/tests/.*\\.(yml|bin)$" path != null;
+            relaxedFilterFunc = path: type:
+              (craneLib.filterCargoSources path type) || (allowMore path type);
+          in
+            relaxedFilterFunc
+          ;
+          name = "source";
+        };
 
         commonArgs = {
           inherit src;
