@@ -34,7 +34,7 @@ pub fn construct_reply(
         let q = &questions[0];
 
         if q.qclass == Class::IN {
-            let records = find_record(config, &q.qname, q.qtype);
+            let (records, ttl) = find_record(config, &q.qname, q.qtype);
             if records.is_empty() {
                 RCode::NXDomain
             } else {
@@ -43,7 +43,7 @@ pub fn construct_reply(
                         name: q.qname.clone(),
                         rclass: q.qclass,
                         rtype: q.qtype,
-                        ttl: 5,
+                        ttl,
                         rdata: record.rdata,
                     });
                 }

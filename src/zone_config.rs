@@ -89,8 +89,10 @@ pub fn find_record(
     config: &ZoneConfig,
     domain: &str,
     record_type: Type,
-) -> Vec<Record> {
+) -> (Vec<Record>, u32) {
     let mut results = Vec::new();
+    let mut ttl = 5; // default TTL
+
     for (zone_name, zone) in &config.zones {
         if !domain.ends_with(zone_name.as_str()) {
             continue; // optimization
@@ -101,12 +103,18 @@ pub fn find_record(
             } else {
                 format!("{}.{}", record.name, zone_name)
             };
-            if combined_name == domain && record.record_type == record_type {
-                results.push(record.clone());
+            if combined_name == domain {
+                if results.is_empty() {
+                    // Set TTL from the zone on first match
+                    ttl = zone.ttl.unwrap_or(5);
+                }
+                if record.record_type == record_type {
+                    results.push(record.clone());
+                }
             }
         }
     }
-    results
+    (results, ttl)
 }
 
 #[cfg(test)]
@@ -121,7 +129,7 @@ mod tests {
         let config: ZoneConfig =
             serde_yaml::from_str(&yaml).expect("Failed to parse zone config");
 
-        let result = find_record(&config, "example.com", Type::A);
+        let (result, ttl) = find_record(&config, "example.com", Type::A);
         let expected = vec![
             Record {
                 name: "".to_string(),
@@ -135,16 +143,20 @@ mod tests {
             },
         ];
         assert_eq!(result, expected);
+        assert_eq!(ttl, 5);
 
-        let result = find_record(&config, "subdomain.example.org", Type::A);
+        let (result, ttl) =
+            find_record(&config, "subdomain.example.org", Type::A);
         let expected = vec![Record {
             name: "subdomain".to_string(),
             record_type: Type::A,
             rdata: RData::A("172.66.157.88".parse().unwrap()),
         }];
         assert_eq!(result, expected);
+        assert_eq!(ttl, 7);
 
-        let result = find_record(&config, "nonexistent.com", Type::A);
+        let (result, ttl) = find_record(&config, "nonexistent.com", Type::A);
         assert_eq!(result, Vec::new());
+        assert_eq!(ttl, 5);
     }
 }
