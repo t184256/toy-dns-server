@@ -22,11 +22,12 @@ impl std::fmt::Display for DnsQuestion {
 }
 
 impl DnsQuestion {
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(1 + self.qname.len() + 2 * 2);
         buf.put_slice(&serialize_dns_name(&self.qname));
-        buf.put_u16(self.qtype.to_u16());
-        buf.put_u16(self.qclass.to_u16());
+        buf.put_u16(self.qtype.into());
+        buf.put_u16(self.qclass.into());
         buf
     }
 }

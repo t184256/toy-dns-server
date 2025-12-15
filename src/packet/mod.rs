@@ -40,6 +40,7 @@ impl std::fmt::Display for DnsPacket {
 }
 
 impl DnsPacket {
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(12);
         buf.put_slice(&self.header.serialize());

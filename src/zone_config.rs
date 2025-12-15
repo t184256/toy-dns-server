@@ -94,16 +94,16 @@ pub fn find_record(
     let mut ttl = 5; // default TTL
 
     for (zone_name, zone) in &config.zones {
-        if !domain.ends_with(zone_name.as_str()) {
+        if !domain.ends_with(zone_name) {
             continue; // optimization
         }
         for record in &zone.records {
-            let combined_name = if record.name.is_empty() {
-                zone_name.clone()
+            let combined_name_matches = if record.name.is_empty() {
+                zone_name == domain
             } else {
-                format!("{}.{}", record.name, zone_name)
+                format!("{}.{}", record.name, zone_name) == domain
             };
-            if combined_name == domain {
+            if combined_name_matches {
                 if results.is_empty() {
                     // Set TTL from the zone on first match
                     ttl = zone.ttl.unwrap_or(5);
@@ -132,12 +132,12 @@ mod tests {
         let (result, ttl) = find_record(&config, "example.com", Type::A);
         let expected = vec![
             Record {
-                name: "".to_string(),
+                name: String::new(),
                 record_type: Type::A,
                 rdata: RData::A("23.192.228.80".parse().unwrap()),
             },
             Record {
-                name: "".to_string(),
+                name: String::new(),
                 record_type: Type::A,
                 rdata: RData::A("23.192.228.84".parse().unwrap()),
             },

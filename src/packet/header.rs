@@ -99,7 +99,7 @@ impl std::fmt::Display for RCode {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DnsHeader {
     pub transaction_id: u16,
     pub response: bool,
@@ -119,6 +119,7 @@ pub struct DnsHeader {
 }
 
 impl DnsHeader {
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(12);
         buf.put_u16(self.transaction_id);

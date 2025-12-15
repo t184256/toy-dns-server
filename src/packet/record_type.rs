@@ -9,6 +9,12 @@ pub enum Type {
 
 impl Type {
     pub fn parse(qtype: u16) -> Type {
+        Type::from(qtype)
+    }
+}
+
+impl From<u16> for Type {
+    fn from(qtype: u16) -> Self {
         match qtype {
             1 => Type::A,
             2 => Type::NS,
@@ -17,8 +23,11 @@ impl Type {
             n => Type::Other(n),
         }
     }
-    pub fn to_u16(self) -> u16 {
-        match self {
+}
+
+impl From<Type> for u16 {
+    fn from(t: Type) -> u16 {
+        match t {
             Type::A => 1,
             Type::NS => 2,
             Type::CNAME => 5,

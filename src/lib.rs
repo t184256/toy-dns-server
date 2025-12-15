@@ -38,15 +38,13 @@ pub fn construct_reply(
             if records.is_empty() {
                 RCode::NXDomain
             } else {
-                for record in records {
-                    answers.push(DnsAnswer {
-                        name: q.qname.clone(),
-                        rclass: q.qclass,
-                        rtype: q.qtype,
-                        ttl,
-                        rdata: record.rdata,
-                    });
-                }
+                answers.extend(records.into_iter().map(|record| DnsAnswer {
+                    name: q.qname.clone(),
+                    rclass: q.qclass,
+                    rtype: q.qtype,
+                    ttl,
+                    rdata: record.rdata,
+                }));
                 RCode::NoError
             }
         } else {
@@ -69,8 +67,8 @@ pub fn construct_reply(
             authenticated_data: false,
             checking_disabled: false,
             rcode,
-            qd_count: questions.len() as u16,
-            an_count: answers.len() as u16,
+            qd_count: questions.len().try_into().unwrap_or(u16::MAX),
+            an_count: answers.len().try_into().unwrap_or(u16::MAX),
             ns_count: 0, // No authority records
             ar_count: 0, // No additional records
         },
@@ -103,7 +101,7 @@ pub async fn serve_udp(
     config: &ZoneConfig,
     listen: &str,
 ) -> Result<(), io::Error> {
-    let socket = UdpSocket::bind(&listen).await?;
+    let socket = UdpSocket::bind(listen).await?;
     eprintln!("Listening on: {}...", socket.local_addr()?);
     let socket = Arc::new(socket);
     let config = Arc::new(config.clone());

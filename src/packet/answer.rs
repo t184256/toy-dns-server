@@ -15,10 +15,11 @@ pub enum RData {
 }
 
 impl RData {
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         match self {
-            RData::A(ip) => ip.octets().to_vec(),
-            RData::AAAA(ip) => ip.octets().to_vec(),
+            RData::A(ip) => Vec::from(ip.octets()),
+            RData::AAAA(ip) => Vec::from(ip.octets()),
             RData::NS(name) | RData::CNAME(name) => serialize_dns_name(name),
             RData::Other(data) => data.clone(),
         }
@@ -94,14 +95,8 @@ fn parse_rdata(
             buf.copy_to_slice(&mut octets);
             Ok(RData::AAAA(Ipv6Addr::from(octets)))
         }
-        Type::NS | Type::CNAME => {
-            let name = parse_dns_name(buf)?;
-            match rtype {
-                Type::NS => Ok(RData::NS(name)),
-                Type::CNAME => Ok(RData::CNAME(name)),
-                _ => unreachable!(),
-            }
-        }
+        Type::NS => Ok(RData::NS(parse_dns_name(buf)?)),
+        Type::CNAME => Ok(RData::CNAME(parse_dns_name(buf)?)),
         Type::Other(_) => {
             let mut data = vec![0u8; rdlength as usize];
             buf.copy_to_slice(&mut data);
@@ -111,14 +106,15 @@ fn parse_rdata(
 }
 
 impl DnsAnswer {
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         let rdata_bytes = self.rdata.serialize();
         let mut buf = Vec::with_capacity(
             1 + self.name.len() + 2 * 3 + 4 + rdata_bytes.len(),
         );
         buf.put_slice(&serialize_dns_name(&self.name));
-        buf.put_u16(self.rtype.to_u16());
-        buf.put_u16(self.rclass.to_u16());
+        buf.put_u16(self.rtype.into());
+        buf.put_u16(self.rclass.into());
         buf.put_u32(self.ttl);
         buf.put_u16(rdata_bytes.len() as u16);
         buf.put_slice(&rdata_bytes);

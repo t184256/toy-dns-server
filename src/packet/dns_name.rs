@@ -2,6 +2,7 @@ use super::error::ParseError;
 use bytes::{Buf as _, BufMut as _};
 
 /// Example: "example.com" -> \x07example\x03com\x00
+#[must_use]
 pub fn serialize_dns_name(name: &str) -> Vec<u8> {
     let mut buf = Vec::new();
     for label in name.split('.') {
