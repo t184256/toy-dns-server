@@ -1,85 +1,14 @@
 use super::dns_name::{parse_dns_name, serialize_dns_name};
 use super::error::ParseError;
+use super::protocol_class::Class;
+use super::record_type::Type;
 use bytes::{Buf as _, BufMut as _};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QType {
-    A,     // 1
-    NS,    // 2
-    CNAME, // 5
-    AAAA,  // 28
-    Other(u16),
-}
-
-impl QType {
-    pub fn parse(qtype: u16) -> QType {
-        match qtype {
-            1 => QType::A,
-            2 => QType::NS,
-            5 => QType::CNAME,
-            28 => QType::AAAA,
-            n => QType::Other(n),
-        }
-    }
-    pub fn to_u16(self) -> u16 {
-        match self {
-            QType::A => 1,
-            QType::NS => 2,
-            QType::CNAME => 5,
-            QType::AAAA => 28,
-            QType::Other(n) => n,
-        }
-    }
-}
-
-impl std::fmt::Display for QType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QType::A => write!(f, "A"),
-            QType::NS => write!(f, "NS"),
-            QType::CNAME => write!(f, "CNAME"),
-            QType::AAAA => write!(f, "AAAA"),
-            QType::Other(n) => write!(f, "Type({})", n),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QClass {
-    IN, // 1 - Internet
-    Other(u16),
-}
-
-impl QClass {
-    pub fn parse(qclass: u16) -> QClass {
-        match qclass {
-            1 => QClass::IN,
-            n => QClass::Other(n),
-        }
-    }
-
-    pub fn to_u16(self) -> u16 {
-        match self {
-            QClass::IN => 1,
-            QClass::Other(n) => n,
-        }
-    }
-}
-
-impl std::fmt::Display for QClass {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QClass::IN => write!(f, "IN"),
-            QClass::Other(n) => write!(f, "Class({})", n),
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DnsQuestion {
     pub qname: String,
-    pub qtype: QType,
-    pub qclass: QClass,
+    pub qtype: Type,
+    pub qclass: Class,
 }
 
 impl std::fmt::Display for DnsQuestion {
@@ -112,8 +41,8 @@ pub fn parse_dns_question(buf: &mut &[u8]) -> Result<DnsQuestion, ParseError> {
         )));
     }
 
-    let qtype = QType::parse(buf.get_u16());
-    let qclass = QClass::parse(buf.get_u16());
+    let qtype = Type::parse(buf.get_u16());
+    let qclass = Class::parse(buf.get_u16());
 
     Ok(DnsQuestion { qname, qtype, qclass })
 }

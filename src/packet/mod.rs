@@ -3,7 +3,9 @@ pub mod answer;
 pub mod dns_name;
 pub mod error;
 pub mod header;
+pub mod protocol_class;
 pub mod question;
+pub mod record_type;
 
 pub use error::ParseError;
 

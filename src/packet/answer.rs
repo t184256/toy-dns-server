@@ -1,5 +1,7 @@
+use super::dns_name::{parse_dns_name, serialize_dns_name};
 use super::error::ParseError;
-use super::question::{QClass, QType};
+use super::protocol_class::Class;
+use super::record_type::Type;
 use bytes::{Buf as _, BufMut as _};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
@@ -38,8 +40,8 @@ impl std::fmt::Display for RData {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DnsAnswer {
     pub name: String,
-    pub rtype: QType,
-    pub rclass: QClass,
+    pub rtype: Type,
+    pub rclass: Class,
     pub ttl: u32,
     pub rdata: RData,
 }
@@ -54,61 +56,8 @@ impl std::fmt::Display for DnsAnswer {
     }
 }
 
-fn serialize_dns_name(name: &str) -> Vec<u8> {
-    let mut buf = Vec::new();
-    for label in name.split('.') {
-        buf.put_u8(label.len() as u8);
-        buf.put_slice(label.as_bytes());
-    }
-    buf.put_u8(0);
-    buf
-}
-
-fn parse_dns_name(buf: &mut &[u8]) -> Result<String, ParseError> {
-    let mut labels = Vec::new();
-
-    loop {
-        if buf.is_empty() {
-            return Err(ParseError::new(
-                "Unexpected end of buffer while parsing DNS name".to_string(),
-            ));
-        }
-
-        let len = buf.get_u8();
-
-        if len & 0xC0 != 0 {
-            return Err(ParseError::new(
-                "DNS name compression not supported".to_string(),
-            ));
-        }
-
-        if len == 0 {
-            break;
-        }
-
-        if buf.remaining() < len as usize {
-            return Err(ParseError::new(format!(
-                "Label length {} exceeds remaining buffer size {}",
-                len,
-                buf.remaining()
-            )));
-        }
-
-        let mut label = vec![0; len as usize];
-        buf.copy_to_slice(&mut label);
-
-        let label_str = String::from_utf8(label).map_err(|e| {
-            ParseError::new(format!("Invalid UTF-8 in DNS label: {}", e))
-        })?;
-
-        labels.push(label_str);
-    }
-
-    Ok(labels.join("."))
-}
-
 fn parse_rdata(
-    rtype: QType,
+    rtype: Type,
     rdlength: u16,
     buf: &mut &[u8],
 ) -> Result<RData, ParseError> {
@@ -121,7 +70,7 @@ fn parse_rdata(
     }
 
     match rtype {
-        QType::A => {
+        Type::A => {
             if rdlength != 4 {
                 return Err(ParseError::new(format!(
                     "Invalid A record length: {}",
@@ -134,7 +83,7 @@ fn parse_rdata(
             let d = buf.get_u8();
             Ok(RData::A(Ipv4Addr::new(a, b, c, d)))
         }
-        QType::AAAA => {
+        Type::AAAA => {
             if rdlength != 16 {
                 return Err(ParseError::new(format!(
                     "Invalid AAAA record length: {}",
@@ -145,15 +94,15 @@ fn parse_rdata(
             buf.copy_to_slice(&mut octets);
             Ok(RData::AAAA(Ipv6Addr::from(octets)))
         }
-        QType::NS | QType::CNAME => {
+        Type::NS | Type::CNAME => {
             let name = parse_dns_name(buf)?;
             match rtype {
-                QType::NS => Ok(RData::NS(name)),
-                QType::CNAME => Ok(RData::CNAME(name)),
+                Type::NS => Ok(RData::NS(name)),
+                Type::CNAME => Ok(RData::CNAME(name)),
                 _ => unreachable!(),
             }
         }
-        QType::Other(_) => {
+        Type::Other(_) => {
             let mut data = vec![0u8; rdlength as usize];
             buf.copy_to_slice(&mut data);
             Ok(RData::Other(data))
@@ -187,8 +136,8 @@ pub fn parse_dns_answer(buf: &mut &[u8]) -> Result<DnsAnswer, ParseError> {
         )));
     }
 
-    let rtype = QType::parse(buf.get_u16());
-    let rclass = QClass::parse(buf.get_u16());
+    let rtype = Type::parse(buf.get_u16());
+    let rclass = Class::parse(buf.get_u16());
     let ttl = buf.get_u32();
     let rdlength = buf.get_u16();
 
@@ -207,8 +156,8 @@ mod tests {
                                \x00\x3c\x00\x04\x5d\xb8\xd8\x22";
         let answer = parse_dns_answer(&mut buf).unwrap();
         assert_eq!(answer.name, "example.com");
-        assert_eq!(answer.rtype, QType::A);
-        assert_eq!(answer.rclass, QClass::IN);
+        assert_eq!(answer.rtype, Type::A);
+        assert_eq!(answer.rclass, Class::IN);
         assert_eq!(answer.ttl, 60);
         assert_eq!(answer.rdata, RData::A(Ipv4Addr::new(93, 184, 216, 34)));
     }
@@ -217,8 +166,8 @@ mod tests {
     fn test_serialize_a_record() {
         let answer = DnsAnswer {
             name: "example.com".to_string(),
-            rtype: QType::A,
-            rclass: QClass::IN,
+            rtype: Type::A,
+            rclass: Class::IN,
             ttl: 60,
             rdata: RData::A(Ipv4Addr::new(93, 184, 216, 34)),
         };

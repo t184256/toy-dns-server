@@ -1,8 +1,8 @@
 use std::fs;
 use std::net::Ipv4Addr;
 use toy_dns_server::{
-    DnsAnswer, DnsHeader, DnsPacket, DnsQuestion, OpCode, QClass, QType, RCode,
-    RData, construct_reply, parse_dns_query,
+    Class, DnsAnswer, DnsHeader, DnsPacket, DnsQuestion, OpCode, RCode, RData,
+    Type, construct_reply, parse_dns_query,
 };
 
 #[test]
@@ -31,8 +31,8 @@ fn test_packet_parsing() {
         },
         questions: vec![DnsQuestion {
             qname: "example.com".to_string(),
-            qtype: QType::A,
-            qclass: QClass::IN,
+            qtype: Type::A,
+            qclass: Class::IN,
         }],
         answers: vec![],
         unparsed: vec![0, 0, 41, 5, 192, 0, 0, 0, 0, 0, 0],
@@ -79,13 +79,13 @@ fn test_reply_to_example() {
         },
         questions: vec![DnsQuestion {
             qname: "example.com".to_string(),
-            qtype: QType::A,
-            qclass: QClass::IN,
+            qtype: Type::A,
+            qclass: Class::IN,
         }],
         answers: vec![DnsAnswer {
             name: "example.com".to_string(),
-            rclass: QClass::IN,
-            rtype: QType::A,
+            rclass: Class::IN,
+            rtype: Type::A,
             ttl: 5,
             rdata: RData::A(Ipv4Addr::new(23, 192, 228, 84)),
         }],

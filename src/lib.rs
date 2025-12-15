@@ -8,7 +8,9 @@ mod packet;
 use packet::ParseError;
 pub use packet::answer::{DnsAnswer, RData};
 pub use packet::header::{DnsHeader, OpCode, RCode};
-pub use packet::question::{DnsQuestion, QClass, QType};
+pub use packet::protocol_class::Class;
+pub use packet::question::DnsQuestion;
+pub use packet::record_type::Type;
 pub use packet::{DnsPacket, parse_dns_query};
 
 impl From<ParseError> for io::Error {
@@ -29,8 +31,8 @@ pub fn construct_reply(query: &DnsPacket) -> Option<DnsPacket> {
 
         // Only meaningfully reply to A queries for example.com for now
         if q.qname == "example.com"
-            && q.qtype == QType::A
-            && q.qclass == QClass::IN
+            && q.qtype == Type::A
+            && q.qclass == Class::IN
         {
             answers.push(DnsAnswer {
                 name: "example.com".to_string(),
