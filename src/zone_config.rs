@@ -84,13 +84,13 @@ impl<'de> Deserialize<'de> for Record {
     }
 }
 
-// TODO: return multiple answers
 // TODO: make an iterator
 pub fn find_record(
     config: &ZoneConfig,
     domain: &str,
     record_type: Type,
-) -> Option<Record> {
+) -> Vec<Record> {
+    let mut results = Vec::new();
     for (zone_name, zone) in &config.zones {
         if !domain.ends_with(zone_name.as_str()) {
             continue; // optimization
@@ -102,11 +102,11 @@ pub fn find_record(
                 format!("{}.{}", record.name, zone_name)
             };
             if combined_name == domain && record.record_type == record_type {
-                return Some(record.clone());
+                results.push(record.clone());
             }
         }
     }
-    None
+    results
 }
 
 #[cfg(test)]
@@ -122,26 +122,29 @@ mod tests {
             serde_yaml::from_str(&yaml).expect("Failed to parse zone config");
 
         let result = find_record(&config, "example.com", Type::A);
-        assert!(result.is_some());
-        let record = result.unwrap();
-        assert_eq!(record.name, "");
-        assert_eq!(record.record_type, Type::A);
-        assert!(
-            record.rdata == RData::A("23.192.228.80".parse().unwrap())
-                || record.rdata == RData::A("23.192.228.84".parse().unwrap())
-        );
+        let expected = vec![
+            Record {
+                name: "".to_string(),
+                record_type: Type::A,
+                rdata: RData::A("23.192.228.80".parse().unwrap()),
+            },
+            Record {
+                name: "".to_string(),
+                record_type: Type::A,
+                rdata: RData::A("23.192.228.84".parse().unwrap()),
+            },
+        ];
+        assert_eq!(result, expected);
 
         let result = find_record(&config, "subdomain.example.org", Type::A);
-        assert_eq!(
-            result,
-            Some(Record {
-                name: "subdomain".to_string(),
-                record_type: Type::A,
-                rdata: RData::A("172.66.157.88".parse().unwrap()),
-            })
-        );
+        let expected = vec![Record {
+            name: "subdomain".to_string(),
+            record_type: Type::A,
+            rdata: RData::A("172.66.157.88".parse().unwrap()),
+        }];
+        assert_eq!(result, expected);
 
         let result = find_record(&config, "nonexistent.com", Type::A);
-        assert_eq!(result, None);
+        assert_eq!(result, Vec::new());
     }
 }

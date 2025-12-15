@@ -79,7 +79,7 @@ fn test_reply_to_example() {
             checking_disabled: false,
             rcode: RCode::NoError,
             qd_count: 1,
-            an_count: 1,
+            an_count: 2,
             ns_count: 0,
             ar_count: 0,
         },
@@ -88,13 +88,22 @@ fn test_reply_to_example() {
             qtype: Type::A,
             qclass: Class::IN,
         }],
-        answers: vec![DnsAnswer {
-            name: "example.com".to_string(),
-            rclass: Class::IN,
-            rtype: Type::A,
-            ttl: 5,
-            rdata: RData::A(Ipv4Addr::new(23, 192, 228, 80)),
-        }],
+        answers: vec![
+            DnsAnswer {
+                name: "example.com".to_string(),
+                rclass: Class::IN,
+                rtype: Type::A,
+                ttl: 5,
+                rdata: RData::A(Ipv4Addr::new(23, 192, 228, 80)),
+            },
+            DnsAnswer {
+                name: "example.com".to_string(),
+                rclass: Class::IN,
+                rtype: Type::A,
+                ttl: 5,
+                rdata: RData::A(Ipv4Addr::new(23, 192, 228, 84)),
+            },
+        ],
         unparsed: Vec::new(),
     };
 

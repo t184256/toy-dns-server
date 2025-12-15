@@ -34,9 +34,11 @@ pub fn construct_reply(
         let q = &questions[0];
 
         if q.qclass == Class::IN {
-            let result = find_record(config, &q.qname, q.qtype);
-            match result {
-                Some(record) => {
+            let records = find_record(config, &q.qname, q.qtype);
+            if records.is_empty() {
+                RCode::NXDomain
+            } else {
+                for record in records {
                     answers.push(DnsAnswer {
                         name: q.qname.clone(),
                         rclass: q.qclass,
@@ -44,9 +46,8 @@ pub fn construct_reply(
                         ttl: 5,
                         rdata: record.rdata,
                     });
-                    RCode::NoError
                 }
-                None => RCode::NXDomain,
+                RCode::NoError
             }
         } else {
             RCode::Refused
