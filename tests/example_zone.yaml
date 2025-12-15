@@ -2,8 +2,13 @@ example.com:
   records:
   - {name: '', type: A, address: 23.192.228.80}
   - {name: '', type: A, address: 23.192.228.84}
+  - {name: '', type: AAAA, address: 2600:1406:5e00:6::17ce:bc1b}
+  - {name: '', type: AAAA, address: 2600:1406:bc00:53::b81e:94c8}
+  - {name: '', type: NS, address: a.iana-servers.net.}
+  - {name: '', type: NS, address: b.iana-servers.net.}
 example.org:
   ttl: 7
   records:
   - {name: '', type: A, address: 104.20.26.109}
   - {name: 'subdomain', type: A, address: 172.66.157.88}
+  - {name: 'alias', type: CNAME, address: something-else.example.org}
