@@ -41,6 +41,8 @@
 
         toy-dns-server = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
+          # dig command for integration tests
+          nativeCheckInputs = [ pkgs.dnsutils ];
         });
 
       in {
@@ -83,7 +85,12 @@
 
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
-          packages = [ pkgs.rust-analyzer pkgs.pre-commit ];
+          packages = [
+            pkgs.cargo-nextest
+            pkgs.rust-analyzer
+            pkgs.pre-commit
+            pkgs.bind  # dig command for integration tests
+          ];
           shellHook = ''
             [ -e .git/hooks/pre-commit ] || \
             echo "suggestion: pre-commit install --install-hooks" >&2
