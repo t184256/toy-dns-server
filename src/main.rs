@@ -1,5 +1,5 @@
 use clap::Parser;
-use toy_dns_server::{ZoneConfig, serve_udp};
+use toy_dns_server::{ZoneConfig, serve};
 
 #[derive(Parser)]
 struct Cli {
@@ -17,6 +17,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zone_config: ZoneConfig = serde_yaml::from_str(&yaml)?;
 
     eprintln!("Toy DNS server will now attempt to listen on {listen}");
-    serve_udp(&zone_config, &listen).await?;
+    serve(&zone_config, &listen).await?;
     Ok(())
 }

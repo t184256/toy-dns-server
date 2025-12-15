@@ -1,6 +1,7 @@
 use std::io;
 use std::sync::Arc;
-use tokio::net::UdpSocket;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::task::JoinSet;
 
 mod packet;
@@ -97,13 +98,50 @@ async fn process_udp(
     Ok(())
 }
 
-pub async fn serve_udp(
-    config: &ZoneConfig,
-    listen: &str,
+async fn process_tcp(
+    config: Arc<ZoneConfig>,
+    mut stream: TcpStream,
+    peer: std::net::SocketAddr,
 ) -> Result<(), io::Error> {
-    let socket = UdpSocket::bind(listen).await?;
-    eprintln!("Listening on: {}...", socket.local_addr()?);
-    let socket = Arc::new(socket);
+    loop {
+        // length prefix
+        let length = match stream.read_u16().await {
+            Ok(len) => len,
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                eprintln!("TCP connection closed by {peer}");
+                return Ok(());
+            }
+            Err(e) => return Err(e),
+        };
+
+        let mut data = vec![0u8; length as usize];
+        stream.read_exact(&mut data).await?;
+        eprintln!("Received {length} bytes from {peer} (TCP)");
+
+        let packet = parse_dns_query(&data)?;
+        eprintln!("Received query: {packet}");
+        if let Some(reply) = construct_reply(&config, &packet) {
+            eprintln!("Sending back reply: {reply}");
+            let reply_bytes = reply.serialize();
+            let reply_len = reply_bytes.len() as u16;
+            stream.write_u16(reply_len).await?; // length prefix
+            stream.write_all(&reply_bytes).await?;
+            stream.flush().await?;
+            eprintln!("Sent {} bytes back to {peer} (TCP)", reply_len);
+        } else {
+            eprintln!("Not answering that query");
+        }
+    }
+}
+
+pub async fn serve(config: &ZoneConfig, listen: &str) -> Result<(), io::Error> {
+    let udp_socket = UdpSocket::bind(listen).await?;
+    let tcp_listener = TcpListener::bind(listen).await?;
+
+    eprintln!("Listening on {} (UDP)...", udp_socket.local_addr()?);
+    eprintln!("Listening on {} (TCP)...", tcp_listener.local_addr()?);
+
+    let udp_socket = Arc::new(udp_socket);
     let config = Arc::new(config.clone());
 
     let mut tasks = JoinSet::new();
@@ -113,14 +151,20 @@ pub async fn serve_udp(
         tokio::select! {
             // return on errors (may be a weird decision, but I was curious)
             Some(result) = tasks.join_next() => { result.unwrap()?; }
-            // process datagrams
-            recv_result = socket.recv_from(&mut recv_buf) => {
+            // process UDP datagrams
+            recv_result = udp_socket.recv_from(&mut recv_buf) => {
                 let (size, peer) = recv_result?;
-                eprintln!("Received {size} bytes from {peer}");
+                eprintln!("Received {size} bytes from {peer} (UDP)");
                 tasks.spawn(process_udp(Arc::clone(&config),
-                                        Arc::clone(&socket),  // clone sharing
-                                        recv_buf[..size].to_vec(),  // copy
+                                        Arc::clone(&udp_socket),
+                                        recv_buf[..size].to_vec(),
                                         peer));
+            }
+            // accept TCP connections
+            accept_result = tcp_listener.accept() => {
+                let (stream, peer) = accept_result?;
+                eprintln!("Accepted TCP connection from {peer}");
+                tasks.spawn(process_tcp(Arc::clone(&config), stream, peer));
             }
         }
     }
