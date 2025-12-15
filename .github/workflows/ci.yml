@@ -21,6 +21,9 @@ jobs:
       - name: Run flake check
         run: nix flake check -L --show-trace
 
+      - name: Run NixOS integration tests
+        run: nix build '.#nixos-integration-test' -L
+
   cargo:
     name: test with Cargo
     runs-on: ubuntu-latest

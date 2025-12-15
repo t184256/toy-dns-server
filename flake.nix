@@ -75,9 +75,24 @@
           toy-dns-server-deny = craneLib.cargoDeny {
             src = pkgs.lib.sources.sourceFilesBySuffices src [ ".rs" ".toml" ];
           };
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          # NixOS integration test with VMs (Linux only)
+          nixos-integration = pkgs.testers.runNixOSTest
+            (import ./nixos-test.nix {
+              inherit pkgs toy-dns-server;
+            });
         };
 
-        packages.default = toy-dns-server;
+        packages = {
+          default = toy-dns-server;
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          # Expose the NixOS integration test as a package (Linux only)
+          nixos-integration-test = self.checks.${system}.nixos-integration;
+
+          # Interactive test driver for debugging (Linux only)
+          nixos-integration-test-driver =
+            self.checks.${system}.nixos-integration.driverInteractive;
+        };
 
         apps.default = flake-utils.lib.mkApp {
           drv = toy-dns-server;
