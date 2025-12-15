@@ -22,7 +22,7 @@
           src = ./.;
           filter = let
             allowMore = path: _type:
-              builtins.match ".*/tests/.*\\.(yml|bin)$" path != null;
+              builtins.match ".*/tests/.*\\.(yaml|bin)$" path != null;
             relaxedFilterFunc = path: type:
               (craneLib.filterCargoSources path type) || (allowMore path type);
           in

@@ -1,0 +1,9 @@
+example.com:
+  records:
+  - {name: '', type: A, address: 23.192.228.80}
+  - {name: '', type: A, address: 23.192.228.84}
+example.org:
+  ttl: 7
+  records:
+  - {name: '', type: A, address: 104.20.26.109}
+  - {name: 'subdomain', type: A, address: 172.66.157.88}

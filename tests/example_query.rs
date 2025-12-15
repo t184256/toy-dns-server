@@ -2,7 +2,7 @@ use std::fs;
 use std::net::Ipv4Addr;
 use toy_dns_server::{
     Class, DnsAnswer, DnsHeader, DnsPacket, DnsQuestion, OpCode, RCode, RData,
-    Type, construct_reply, parse_dns_query,
+    Type, ZoneConfig, construct_reply, parse_dns_query,
 };
 
 #[test]
@@ -54,10 +54,16 @@ fn test_packet_serialization_roundtrip() {
 
 #[test]
 fn test_reply_to_example() {
+    let yaml = fs::read_to_string("tests/example_zone.yaml")
+        .expect("Failed to read example zone file");
+    let config: ZoneConfig =
+        serde_yaml::from_str(&yaml).expect("Failed to parse zone config");
+
     let data = fs::read("tests/example.query.bin")
         .expect("Failed to read example.query.bin");
     let query = parse_dns_query(&data).expect("Failed to parse DNS query");
-    let reply = construct_reply(&query).expect("Should construct a reply");
+    let reply =
+        construct_reply(&config, &query).expect("Should construct a reply");
 
     let expected = DnsPacket {
         header: DnsHeader {
@@ -87,7 +93,7 @@ fn test_reply_to_example() {
             rclass: Class::IN,
             rtype: Type::A,
             ttl: 5,
-            rdata: RData::A(Ipv4Addr::new(23, 192, 228, 84)),
+            rdata: RData::A(Ipv4Addr::new(23, 192, 228, 80)),
         }],
         unparsed: Vec::new(),
     };
@@ -97,10 +103,16 @@ fn test_reply_to_example() {
 
 #[test]
 fn test_reply_to_example_serialization_roundtrip() {
+    let yaml = fs::read_to_string("tests/example_zone.yaml")
+        .expect("Failed to read example zone file");
+    let config: ZoneConfig =
+        serde_yaml::from_str(&yaml).expect("Failed to parse zone config");
+
     let data = fs::read("tests/example.query.bin")
         .expect("Failed to read example.query.bin");
     let query = parse_dns_query(&data).expect("Failed to parse DNS query");
-    let reply = construct_reply(&query).expect("Should construct a reply");
+    let reply =
+        construct_reply(&config, &query).expect("Should construct a reply");
 
     let reply_serialized = reply.serialize();
     let reply_deserialized = parse_dns_query(&reply_serialized).unwrap();
